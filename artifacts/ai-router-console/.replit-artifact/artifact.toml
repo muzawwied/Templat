@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "AI Router Console"
+description = "Dashboard dan API playground full-stack untuk mengelola satu OpenAI-compatible gateway, menghubungkan provider AI, dan melihat pemakaian serta kredit."
+version = "1.0.0"
+id = "artifacts/ai-router-console"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18436
+
+[services.development]
+run = "pnpm --filter @workspace/ai-router-console run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/ai-router-console", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/ai-router-console/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18436"
+BASE_PATH = "/"

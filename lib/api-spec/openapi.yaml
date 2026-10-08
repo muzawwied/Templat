@@ -3,13 +3,17 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: AI Router Console and OpenAI-compatible model gateway API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: console
+    description: Authenticated console operations
+  - name: gateway
+    description: OpenAI-compatible API gateway
 paths:
   /healthz:
     get:
@@ -24,7 +28,463 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /me:
+    get:
+      operationId: getCurrentUser
+      tags: [console]
+      summary: Get the signed-in account
+      responses:
+        "200":
+          description: Current account
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CurrentUser"
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /dashboard:
+    get:
+      operationId: getDashboard
+      tags: [console]
+      summary: Get account metrics and recent activity
+      responses:
+        "200":
+          description: Dashboard data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Dashboard"
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /providers:
+    get:
+      operationId: listProviders
+      tags: [console]
+      summary: List configured providers
+      responses:
+        "200":
+          description: Provider list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Provider"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+    post:
+      operationId: createProvider
+      tags: [console]
+      summary: Add an OpenAI-compatible provider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ProviderInput"}
+      responses:
+        "201":
+          description: Provider created
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Provider"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /providers/{providerId}:
+    parameters:
+      - $ref: "#/components/parameters/ProviderId"
+    patch:
+      operationId: updateProvider
+      tags: [console]
+      summary: Update a provider
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ProviderUpdate"}
+      responses:
+        "200":
+          description: Provider updated
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Provider"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    delete:
+      operationId: deleteProvider
+      tags: [console]
+      summary: Remove a provider
+      responses:
+        "204": {description: Provider removed}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /providers/{providerId}/models:
+    parameters:
+      - $ref: "#/components/parameters/ProviderId"
+    post:
+      operationId: syncProviderModels
+      tags: [console]
+      summary: Discover models exposed by a provider
+      responses:
+        "200":
+          description: Discovered models
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Model"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "502": {$ref: "#/components/responses/ProviderError"}
+  /models:
+    get:
+      operationId: listModels
+      tags: [console]
+      summary: List available models
+      responses:
+        "200":
+          description: Model list
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/Model"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+    post:
+      operationId: createModel
+      tags: [console]
+      summary: Add a provider model
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ModelInput"}
+      responses:
+        "201":
+          description: Model created
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Model"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /models/{modelId}:
+    parameters:
+      - name: modelId
+        in: path
+        required: true
+        schema: {type: string, format: uuid}
+    patch:
+      operationId: updateModel
+      tags: [console]
+      summary: Update model pricing and capabilities
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ModelUpdate"}
+      responses:
+        "200":
+          description: Model updated
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Model"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+    delete:
+      operationId: deleteModel
+      tags: [console]
+      summary: Remove a model
+      responses:
+        "204": {description: Model removed}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /api-keys:
+    get:
+      operationId: listApiKeys
+      tags: [console]
+      summary: List application API keys
+      responses:
+        "200":
+          description: API keys without secret material
+          content:
+            application/json:
+              schema:
+                type: array
+                items: {$ref: "#/components/schemas/ApiKey"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+    post:
+      operationId: createApiKey
+      tags: [console]
+      summary: Create an application API key
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ApiKeyInput"}
+      responses:
+        "201":
+          description: Secret is returned once
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ApiKeyCreated"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /api-keys/{keyId}:
+    parameters:
+      - name: keyId
+        in: path
+        required: true
+        schema: {type: string, format: uuid}
+    delete:
+      operationId: revokeApiKey
+      tags: [console]
+      summary: Revoke an application API key
+      responses:
+        "204": {description: API key revoked}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /usage:
+    get:
+      operationId: listUsage
+      tags: [console]
+      summary: List paginated request usage
+      parameters:
+        - name: page
+          in: query
+          schema: {type: integer, minimum: 1, default: 1}
+        - name: pageSize
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100, default: 20}
+        - name: search
+          in: query
+          schema: {type: string}
+      responses:
+        "200":
+          description: Usage history
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/UsagePage"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /credits:
+    get:
+      operationId: getCredits
+      tags: [console]
+      summary: Get credit balance and transactions
+      responses:
+        "200":
+          description: Credit account
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/Credits"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /routing-settings:
+    get:
+      operationId: getRoutingSettings
+      tags: [console]
+      summary: Read gateway routing configuration
+      responses:
+        "200":
+          description: Routing configuration
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/RoutingSettings"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+    put:
+      operationId: updateRoutingSettings
+      tags: [console]
+      summary: Update routing strategy and markup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/RoutingSettingsInput"}
+      responses:
+        "200":
+          description: Updated routing settings
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/RoutingSettings"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /admin/users:
+    get:
+      operationId: listAdminUsers
+      tags: [console]
+      summary: List account users for administration
+      parameters:
+        - name: page
+          in: query
+          schema: {type: integer, minimum: 1, default: 1}
+        - name: pageSize
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100, default: 20}
+        - name: search
+          in: query
+          schema: {type: string}
+      responses:
+        "200":
+          description: User accounts
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AdminUserPage"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /admin/users/{userId}/credits:
+    parameters:
+      - name: userId
+        in: path
+        required: true
+        schema: {type: string}
+    post:
+      operationId: adjustUserCredits
+      tags: [console]
+      summary: Add or remove credits for a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/CreditAdjustmentInput"}
+      responses:
+        "200":
+          description: Credit adjustment applied
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/CreditAdjustment"}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+        "404": {$ref: "#/components/responses/NotFound"}
+  /audit-logs:
+    get:
+      operationId: listAuditLogs
+      tags: [console]
+      summary: List administrative audit events
+      parameters:
+        - name: page
+          in: query
+          schema: {type: integer, minimum: 1, default: 1}
+        - name: pageSize
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100, default: 20}
+      responses:
+        "200":
+          description: Audit event history
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/AuditLogPage"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "403": {$ref: "#/components/responses/Forbidden"}
+  /logs:
+    get:
+      operationId: listRequestLogs
+      tags: [console]
+      summary: List request logs
+      parameters:
+        - name: page
+          in: query
+          schema: {type: integer, minimum: 1, default: 1}
+        - name: pageSize
+          in: query
+          schema: {type: integer, minimum: 1, maximum: 100, default: 20}
+        - name: search
+          in: query
+          schema: {type: string}
+      responses:
+        "200":
+          description: Request log history
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/UsagePage"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+  /v1/models:
+    get:
+      operationId: gatewayListModels
+      tags: [gateway]
+      summary: OpenAI-compatible model list
+      security: [{ApiKey: []}]
+      responses:
+        "200":
+          description: Model list
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/OpenAIModelList"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "429": {$ref: "#/components/responses/RateLimited"}
+  /v1/chat/completions:
+    post:
+      operationId: chatCompletion
+      tags: [gateway]
+      summary: Create an OpenAI-compatible chat completion
+      security: [{ApiKey: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: "#/components/schemas/ChatCompletionInput"}
+      responses:
+        "200":
+          description: Chat completion (JSON or text/event-stream when stream is true)
+          content:
+            application/json:
+              schema: {$ref: "#/components/schemas/ChatCompletionOutput"}
+            text/event-stream:
+              schema: {type: string}
+        "400": {$ref: "#/components/responses/BadRequest"}
+        "401": {$ref: "#/components/responses/Unauthorized"}
+        "429": {$ref: "#/components/responses/RateLimited"}
+        "502": {$ref: "#/components/responses/ProviderError"}
+        "503": {$ref: "#/components/responses/Unavailable"}
 components:
+  securitySchemes:
+    ApiKey:
+      type: http
+      scheme: bearer
+      description: Application API key created in the console
+  parameters:
+    ProviderId:
+      name: providerId
+      in: path
+      required: true
+      schema: {type: string, format: uuid}
+  responses:
+    Unauthorized:
+      description: Authentication required or API key invalid
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+    Forbidden:
+      description: Insufficient permissions
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+    BadRequest:
+      description: Invalid input
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+    RateLimited:
+      description: Rate limit exceeded
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+    ProviderError:
+      description: Provider request failed
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
+    Unavailable:
+      description: No provider is currently available
+      content:
+        application/json:
+          schema: {$ref: "#/components/schemas/Error"}
   schemas:
     HealthStatus:
       type: object
@@ -33,4 +493,288 @@ components:
           type: string
       required:
         - status
+    Error:
+      type: object
+      properties:
+        error: {type: string}
+        requestId: {type: ["string", "null"]}
+      required: [error]
+    CurrentUser:
+      type: object
+      properties:
+        id: {type: string}
+        email: {type: ["string", "null"]}
+        displayName: {type: ["string", "null"]}
+        role: {type: string, enum: [admin, user]}
+        creditBalance: {type: number}
+      required: [id, role, creditBalance]
+    DailyMetric:
+      type: object
+      properties:
+        date: {type: string}
+        requests: {type: integer}
+        tokens: {type: integer}
+        cost: {type: number}
+      required: [date, requests, tokens, cost]
+    UsageRecord:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        requestId: {type: string}
+        model: {type: string}
+        provider: {type: string}
+        inputTokens: {type: integer}
+        outputTokens: {type: integer}
+        totalTokens: {type: integer}
+        latencyMs: {type: integer}
+        providerCost: {type: number}
+        userCost: {type: number}
+        status: {type: string}
+        error: {type: ["string", "null"]}
+        createdAt: {type: string, format: date-time}
+      required: [id, requestId, model, provider, inputTokens, outputTokens, totalTokens, latencyMs, providerCost, userCost, status, createdAt]
+    Dashboard:
+      type: object
+      properties:
+        totalRequests: {type: integer}
+        totalTokens: {type: integer}
+        totalSpend: {type: number}
+        avgLatencyMs: {type: integer}
+        errorRate: {type: number}
+        creditBalance: {type: number}
+        activeProviders: {type: integer}
+        activeModels: {type: integer}
+        daily: {type: array, items: {$ref: "#/components/schemas/DailyMetric"}}
+        recentUsage: {type: array, items: {$ref: "#/components/schemas/UsageRecord"}}
+      required: [totalRequests, totalTokens, totalSpend, avgLatencyMs, errorRate, creditBalance, activeProviders, activeModels, daily, recentUsage]
+    Provider:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        providerType: {type: string}
+        baseUrl: {type: string}
+        priority: {type: integer}
+        timeoutMs: {type: integer}
+        enabled: {type: boolean}
+        keyConfigured: {type: boolean}
+        healthStatus: {type: string, enum: [unknown, healthy, degraded, unhealthy]}
+        modelCount: {type: integer}
+        createdAt: {type: string, format: date-time}
+      required: [id, name, providerType, baseUrl, priority, timeoutMs, enabled, keyConfigured, healthStatus, modelCount, createdAt]
+    ProviderInput:
+      type: object
+      properties:
+        name: {type: string, minLength: 1, maxLength: 120}
+        providerType: {type: string, minLength: 1, maxLength: 80}
+        baseUrl: {type: string, format: uri}
+        apiKey: {type: string, minLength: 1, maxLength: 4096}
+        priority: {type: integer, minimum: 1, maximum: 1000}
+        timeoutMs: {type: integer, minimum: 1000, maximum: 120000}
+      required: [name, providerType, baseUrl, apiKey, priority, timeoutMs]
+    ProviderUpdate:
+      type: object
+      properties:
+        name: {type: string, minLength: 1, maxLength: 120}
+        baseUrl: {type: string, format: uri}
+        apiKey: {type: ["string", "null"], maxLength: 4096}
+        priority: {type: integer, minimum: 1, maximum: 1000}
+        timeoutMs: {type: integer, minimum: 1000, maximum: 120000}
+        enabled: {type: boolean}
+    Model:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        providerId: {type: string, format: uuid}
+        providerName: {type: string}
+        name: {type: string}
+        modelName: {type: string}
+        contextWindow: {type: integer}
+        inputPricePerMillion: {type: number}
+        outputPricePerMillion: {type: number}
+        supportsStreaming: {type: boolean}
+        supportsVision: {type: boolean}
+        supportsTools: {type: boolean}
+        enabled: {type: boolean}
+      required: [id, providerId, providerName, name, modelName, contextWindow, inputPricePerMillion, outputPricePerMillion, supportsStreaming, supportsVision, supportsTools, enabled]
+    ModelInput:
+      type: object
+      properties:
+        providerId: {type: string, format: uuid}
+        name: {type: string, minLength: 1, maxLength: 160}
+        modelName: {type: string, minLength: 1, maxLength: 160}
+        contextWindow: {type: integer, minimum: 1}
+        inputPricePerMillion: {type: number, minimum: 0}
+        outputPricePerMillion: {type: number, minimum: 0}
+        supportsStreaming: {type: boolean}
+        supportsVision: {type: boolean}
+        supportsTools: {type: boolean}
+      required: [providerId, name, modelName, contextWindow, inputPricePerMillion, outputPricePerMillion, supportsStreaming, supportsVision, supportsTools]
+    ModelUpdate:
+      type: object
+      properties:
+        name: {type: string, minLength: 1, maxLength: 160}
+        contextWindow: {type: integer, minimum: 1}
+        inputPricePerMillion: {type: number, minimum: 0}
+        outputPricePerMillion: {type: number, minimum: 0}
+        supportsStreaming: {type: boolean}
+        supportsVision: {type: boolean}
+        supportsTools: {type: boolean}
+        enabled: {type: boolean}
+    ApiKey:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        name: {type: string}
+        prefix: {type: string}
+        status: {type: string, enum: [active, revoked]}
+        lastUsedAt: {type: ["string", "null"], format: date-time}
+        createdAt: {type: string, format: date-time}
+      required: [id, name, prefix, status, createdAt]
+    ApiKeyInput:
+      type: object
+      properties:
+        name: {type: string, minLength: 1, maxLength: 120}
+      required: [name]
+    ApiKeyCreated:
+      type: object
+      properties:
+        key: {$ref: "#/components/schemas/ApiKey"}
+        secret: {type: string}
+      required: [key, secret]
+    UsagePage:
+      type: object
+      properties:
+        items: {type: array, items: {$ref: "#/components/schemas/UsageRecord"}}
+        page: {type: integer}
+        pageSize: {type: integer}
+        total: {type: integer}
+      required: [items, page, pageSize, total]
+    CreditTransaction:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        type: {type: string, enum: [credit, debit, refund, adjustment]}
+        amount: {type: number}
+        balanceAfter: {type: number}
+        description: {type: string}
+        createdAt: {type: string, format: date-time}
+      required: [id, type, amount, balanceAfter, description, createdAt]
+    CreditAdjustmentInput:
+      type: object
+      properties:
+        amount: {type: number, not: {const: 0}}
+        description: {type: string, minLength: 1, maxLength: 500}
+      required: [amount, description]
+    CreditAdjustment:
+      type: object
+      properties:
+        userId: {type: string}
+        balance: {type: number}
+        transaction: {$ref: "#/components/schemas/CreditTransaction"}
+      required: [userId, balance, transaction]
+    Credits:
+      type: object
+      properties:
+        balance: {type: number}
+        transactions: {type: array, items: {$ref: "#/components/schemas/CreditTransaction"}}
+      required: [balance, transactions]
+    AdminUser:
+      type: object
+      properties:
+        id: {type: string}
+        email: {type: ["string", "null"]}
+        displayName: {type: ["string", "null"]}
+        role: {type: string, enum: [admin, user]}
+        creditBalance: {type: number}
+        requestCount: {type: integer}
+        createdAt: {type: string, format: date-time}
+      required: [id, role, creditBalance, requestCount, createdAt]
+    AdminUserPage:
+      type: object
+      properties:
+        items: {type: array, items: {$ref: "#/components/schemas/AdminUser"}}
+        page: {type: integer}
+        pageSize: {type: integer}
+        total: {type: integer}
+      required: [items, page, pageSize, total]
+    AuditLog:
+      type: object
+      properties:
+        id: {type: string, format: uuid}
+        actor: {type: ["string", "null"]}
+        action: {type: string}
+        resourceType: {type: string}
+        resourceId: {type: ["string", "null"]}
+        details: {type: object, additionalProperties: true}
+        createdAt: {type: string, format: date-time}
+      required: [id, action, resourceType, details, createdAt]
+    AuditLogPage:
+      type: object
+      properties:
+        items: {type: array, items: {$ref: "#/components/schemas/AuditLog"}}
+        page: {type: integer}
+        pageSize: {type: integer}
+        total: {type: integer}
+      required: [items, page, pageSize, total]
+    RoutingSettings:
+      type: object
+      properties:
+        strategy: {type: string, enum: [priority, lowest_cost, lowest_latency, round_robin, weighted]}
+        markupPercent: {type: number}
+        fallbackEnabled: {type: boolean}
+      required: [strategy, markupPercent, fallbackEnabled]
+    RoutingSettingsInput:
+      type: object
+      properties:
+        strategy: {type: string, enum: [priority, lowest_cost, lowest_latency, round_robin, weighted]}
+        markupPercent: {type: number, minimum: 0, maximum: 1000}
+        fallbackEnabled: {type: boolean}
+      required: [strategy, markupPercent, fallbackEnabled]
+    ChatMessage:
+      type: object
+      properties:
+        role: {type: string, enum: [system, user, assistant, tool]}
+        content:
+          oneOf:
+            - {type: string}
+            - {type: array, items: {type: object, additionalProperties: true}}
+        name: {type: string}
+        tool_call_id: {type: string}
+      required: [role, content]
+    ChatCompletionInput:
+      type: object
+      properties:
+        model: {type: string, minLength: 1}
+        messages: {type: array, minItems: 1, items: {$ref: "#/components/schemas/ChatMessage"}}
+        temperature: {type: number, minimum: 0, maximum: 2}
+        max_tokens: {type: integer, minimum: 1}
+        top_p: {type: number, minimum: 0, maximum: 1}
+        stream: {type: boolean, default: false}
+        tools: {type: array, items: {type: object, additionalProperties: true}}
+        tool_choice: {type: [string, object]}
+        n: {type: integer, minimum: 1, maximum: 1}
+      required: [model, messages]
+    ChatCompletionOutput:
+      type: object
+      properties:
+        id: {type: string}
+        object: {type: string}
+        created: {type: integer}
+        model: {type: string}
+        choices: {type: array, items: {type: object, additionalProperties: true}}
+        usage:
+          type: object
+          properties:
+            prompt_tokens: {type: integer}
+            completion_tokens: {type: integer}
+            total_tokens: {type: integer}
+          required: [prompt_tokens, completion_tokens, total_tokens]
+      required: [id, object, created, model, choices]
+    OpenAIModelList:
+      type: object
+      properties:
+        object: {type: string, const: list}
+        data: {type: array, items: {type: object, additionalProperties: true}}
+      required: [object, data]
 

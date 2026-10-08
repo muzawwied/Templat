@@ -1,0 +1,191 @@
+Buat aplikasi Full-Stack AI API Router yang production-ready dan benar-benar berfungsi, bukan hanya mockup.
+
+Aplikasi ini harus menjadi OpenAI-compatible API Gateway yang memungkinkan user menggunakan satu API Key untuk mengakses berbagai AI provider seperti OpenAI, Anthropic, Google Gemini, DeepSeek, Groq, OpenRouter, Mistral, dan provider custom OpenAI-compatible.
+
+Fitur utama
+
+User Dashboard
+
+- Register/login
+- Dashboard statistik request, token, biaya, latency, dan error
+- Membuat, melihat, dan revoke API key
+- Usage history dan request logs
+- Credit/balance
+- API Playground
+- Daftar model yang tersedia
+- Dokumentasi API
+- Dark/light mode dan responsive UI
+
+API Gateway
+
+- "POST /v1/chat/completions"
+- "GET /v1/models"
+- Support OpenAI-compatible request/response
+- Streaming SSE
+- Temperature, max_tokens, top_p, system/user/assistant messages
+- Tool/function calling jika provider mendukung
+- Standardized error response
+- Request ID
+
+AI Provider System
+Buat sistem adapter/provider yang modular sehingga admin dapat menambahkan provider baru tanpa mengubah core router.
+
+Setiap provider memiliki:
+
+- API key terenkripsi
+- Base URL
+- Models
+- Priority
+- Timeout
+- Rate limit
+- Enabled/disabled
+- Health status
+
+Smart Routing
+Router otomatis memilih provider berdasarkan:
+
+- Priority
+- Lowest cost
+- Lowest latency
+- Round robin
+- Weighted routing
+- Provider health
+- Availability
+
+Jika provider gagal, otomatis gunakan provider berikutnya dengan:
+
+- Retry
+- Exponential backoff
+- Timeout
+- Circuit breaker
+- Fallback provider
+
+Model Management
+Admin dapat mengatur:
+
+- Model name
+- Provider
+- Context window
+- Input price
+- Output price
+- Streaming
+- Vision
+- Tools
+- Enabled/disabled
+
+Usage & Billing
+Catat setiap request:
+
+- User
+- API key
+- Model
+- Provider
+- Input tokens
+- Output tokens
+- Total tokens
+- Latency
+- Provider cost
+- User cost
+- Status
+- Error
+- Timestamp
+
+Buat sistem credit dengan debit/refund/adjustment dan configurable markup sehingga admin dapat menentukan harga jual berdasarkan biaya provider.
+
+Rate Limiting
+Support rate limit berdasarkan:
+
+- User
+- API key
+- IP
+- Model
+- Provider
+
+Gunakan HTTP 429 jika limit tercapai dan tampilkan rate-limit headers.
+
+Admin Dashboard
+Admin dapat:
+
+- Mengelola users
+- Mengelola API keys
+- Menambah/edit/delete provider
+- Menambah/edit/delete models
+- Mengatur routing strategy
+- Mengatur fallback
+- Mengatur pricing/markup
+- Melihat usage
+- Melihat cost/revenue/profit
+- Melihat provider health
+- Melihat audit logs
+- Mengatur system settings
+
+Security
+Gunakan:
+
+- Secure authentication
+- RBAC
+- Password hashing
+- API key hashing
+- Provider API key encryption
+- Input validation
+- CORS
+- Rate limiting
+- Secure headers
+- SQL injection protection
+- XSS protection
+- Audit logging
+- Environment variables untuk secrets
+- Jangan pernah expose provider API keys ke frontend
+
+Tambahkan SSRF protection untuk custom provider URL.
+
+Database
+Gunakan PostgreSQL dengan tabel minimal:
+users, api_keys, providers, models, routing_rules, requests, usage_records, credit_accounts, credit_transactions, rate_limits, provider_health, audit_logs, system_settings.
+
+Gunakan UUID, timestamps, foreign keys, indexes, migrations, dan database transactions untuk billing.
+
+UI
+Buat tampilan SaaS modern seperti platform AI profesional dengan sidebar:
+
+Dashboard
+Playground
+API Keys
+Models
+Usage
+Logs
+Credits
+Documentation
+
+Admin:
+
+Overview
+Users
+Providers
+Models
+Routing
+Billing
+Usage
+Audit Logs
+Settings
+
+Gunakan responsive design, loading states, empty states, search, filter, pagination, charts, toast notification, confirmation dialog, dan dark mode.
+
+API Playground
+User dapat memilih model, memasukkan prompt, mengatur temperature/max tokens, memilih streaming, lalu melihat response, provider, token usage, latency, cost, dan request ID.
+
+Documentation
+Buat dokumentasi lengkap dengan contoh cURL, JavaScript, Python, PHP, dan Go menggunakan API key aplikasi.
+
+Observability
+Tambahkan structured logging, request ID, health check "/health", readiness "/ready", metrics "/metrics", provider health monitoring, latency dan error tracking.
+
+Testing
+Buat unit test, integration test, dan end-to-end test untuk authentication, API key, routing, provider, fallback, streaming, rate limiting, usage, credit, dan billing.
+
+Deployment
+Sediakan Dockerfile, docker-compose, ".env.example", database migration, seed data, production configuration, graceful shutdown, timeout, connection pooling, dan Redis untuk caching/rate limiting jika diperlukan.
+
+Gunakan TypeScript, React, Node.js, PostgreSQL, Redis, Tailwind CSS, dan arsitektur modular.
+
+Yang paling penting: jangan membuat prototype atau data palsu. Semua fitur utama harus terhubung ke backend dan database serta dapat digunakan secara nyata. API Router harus benar-benar dapat menerima request OpenAI-compatible, meneruskannya ke provider yang dipilih, melakukan fallback jika gagal, menghitung token/cost, mencatat usage, dan mengurangi credit user.
